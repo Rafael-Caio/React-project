@@ -1,31 +1,110 @@
-import React from "react";
 import "./styles.css";
-//import { Component } from "react";
+//o useState é import
+import { useEffect, useState, useCallback } from "react";
 
 import { loadPosts } from "../../utils/load-posts";
 import { Posts } from "../../components/Posts";
 import { Button } from "../../components/Button";
 import { TextInput } from "../../components/TextInput";
 
+//MIGRANDO PARA REACT HOOKS(componente funcionais)
+//obs: não usam this.
+export const Home = () => {
+  //usando useState
+  const [posts, setPosts] = useState([]);
+  const [allPosts, setAllPosts] = useState([]);
+  const [page, setPage] = useState(0);
+  const [postsPerPage] = useState(4);
+  const [searchValue, setSearchValue] = useState("");
+
+  //determina que se page for maior que a quant de posts, não tem mais posts.
+  const noMorePosts = page + postsPerPage >= allPosts.length;
+
+  const filteredPosts = !!searchValue
+    ? allPosts.filter((post) => {
+        //converte o valo para diminutivo e inclui o searchValue no diminutivo.
+        return post.title.toLowerCase().includes(searchValue.toLowerCase());
+      })
+    : posts;
+
+  //o const para virar função
+  const handleLoadPosts = useCallback(async (page, postsPerPage) => {
+    const postsAndPhotos = await loadPosts();
+
+    setPosts(postsAndPhotos.slice(page, postsPerPage));
+    setAllPosts(postsAndPhotos);
+  }, []);
+
+  //o useEffect faz efeito de componentDidMount, Update e WillUnmount
+  useEffect(() => {
+    console.log(new Date().toLocaleString("pt-br"));
+    handleLoadPosts(0, postsPerPage);
+  }, [handleLoadPosts, postsPerPage]);
+
+  //o const para virar função
+  const loadMorePosts = () => {
+    const nextPage = page + postsPerPage;
+    const nextPosts = allPosts.slice(nextPage, nextPage + postsPerPage);
+    posts.push(...nextPosts);
+
+    setPosts(posts);
+    setPage(nextPage);
+  };
+
+  //const para virar função
+  const handleChange = (e) => {
+    const { value } = e.target;
+    setSearchValue(value);
+  };
+
+  return (
+    <section className="container">
+      <div className="search-container">
+        {!!searchValue && <h1>Search value: {searchValue}</h1>}
+        <TextInput searchValue={searchValue} handleChange={handleChange} />
+      </div>
+
+      {filteredPosts.length > 0 && (
+        <>
+          <Posts posts={filteredPosts} />
+        </>
+      )}
+
+      {filteredPosts.length === 0 && <p>Não existem posts =/</p>}
+      <div className="button-container">
+        {!searchValue && (
+          <Button
+            text="Load More Posts"
+            onClick={loadMorePosts}
+            disabled={noMorePosts}
+          />
+        )}
+      </div>
+    </section>
+  );
+};
+
 //import { TextInput } from "../../components/TextInput";
 //CRIANDO COMPONENT DE CLASS.
 //ESTADO são os dados utilizados pelo component.
 //sempre que o estado for modificado, ele precisa ser renderizado novamente.
 //A estrutura abaixo indica que App herda Components.
-export class Home extends React.Component {
-  //atribuindo state (estados)
-  //props são objetos que são passadas como parâmetros.
-  //construtor e props de App
-  //constructor(props) {
-  //herda props de component
-  //super(props);
-  //fazendo bind do evento.
-  //this.handlePClick = this.handlePClick.bind(this);
-  //this.handlePDBclick = this.handlePDBclick.bind(this);
-  //adicionando props em app.
-  //this.
-  //o class field permite criar componentes sem construtor como abaixo.
-  /*constructor(props){
+
+//ESTRUTUR ANTERIOR:
+//export class Home2 extends Component {
+//atribuindo state (estados)
+//props são objetos que são passadas como parâmetros.
+//construtor e props de App
+//constructor(props) {
+//herda props de component
+//super(props);
+//fazendo bind do evento.
+//this.handlePClick = this.handlePClick.bind(this);
+//this.handlePDBclick = this.handlePDBclick.bind(this);
+//adicionando props em app.
+//this.
+//o class field permite criar componentes sem construtor como abaixo.
+/*constructor(props){
     super(props);
     this.state = {
       name: "Rafael Caio",
@@ -33,15 +112,15 @@ export class Home extends React.Component {
       counter: 0
     }
   }*/
-  state = {
-    /*name: "Rafael Caio",
+//state = {
+/*name: "Rafael Caio",
     cargo: "Programador",
     counter: 0,*/
-    //Usando um objeto em formato de array.
-    //Utilizado também para busca de dados em APIs.
-    //Vamos comentar o dados hardcode e buscar dados de uma API para o posts.
-    posts: [
-      /*{
+//Usando um objeto em formato de array.
+//Utilizado também para busca de dados em APIs.
+//Vamos comentar o dados hardcode e buscar dados de uma API para o posts.
+//posts: [
+/*{
         id: 1,
         title: "O título 1",
         body: "O corpo 1",
@@ -56,78 +135,78 @@ export class Home extends React.Component {
         title: "O título 3",
         body: "O corpo 3",
       },*/
-    ],
-    allPosts: [],
-    //adicionados para paginação
-    page: 0,
-    postsPerPage: 4,
-    //counter: 0,
-    searchValue: "",
-  };
+//],
+//allPosts: [],
+//adicionados para paginação
+//page: 0,
+//postsPerPage: 4,
+//counter: 0,
+//searchValue: "",
+//};
 
-  //permite ter acesso ao timeout a qualquer momento.
-  //timeoutUpdate = null;
+//permite ter acesso ao timeout a qualquer momento.
+//timeoutUpdate = null;
 
-  //Quando o componente for montado na tela, eu quero que aconteça algo.
-  //Para que isso aconteça utilizamos os Lifecycle methods.
-  //Em methods padrões não usamos arrow function.
-  //Quando for realizar uma request na APIs, posso fazer por aqui.
-  //Vamos aplicar o Datafetching para buscar os dados de fora, através de uma API.
-  //Mas colocaremos o fetch em outra função a loadPosts.
-  async componentDidMount() {
-    await this.loadPosts();
-    //retorna uma promise(resposta) em seguida convertida em json.
-    //.then((response) => response.json())
-    //isso retorna outra promise
-    //o setState esta presente, pois o state estava vazio e agora será preenchido.
-    //.then(response => setState(post: response)) ou...
-    //.then((posts) => this.setState({ posts }));
+//Quando o componente for montado na tela, eu quero que aconteça algo.
+//Para que isso aconteça utilizamos os Lifecycle methods.
+//Em methods padrões não usamos arrow function.
+//Quando for realizar uma request na APIs, posso fazer por aqui.
+//Vamos aplicar o Datafetching para buscar os dados de fora, através de uma API.
+//Mas colocaremos o fetch em outra função a loadPosts.
+//async componentDidMount() {
+//await this.loadPosts();
+//retorna uma promise(resposta) em seguida convertida em json.
+//.then((response) => response.json())
+//isso retorna outra promise
+//o setState esta presente, pois o state estava vazio e agora será preenchido.
+//.then(response => setState(post: response)) ou...
+//.then((posts) => this.setState({ posts }));
 
-    //chamando o método criado para dentro do componente padrão.
-    //this.handleTimeout();
-  }
+//chamando o método criado para dentro do componente padrão.
+//this.handleTimeout();
+//}
 
-  //criando function para armazenar o fetch.
-  //A lógica será armazenada em outra função, na pasta utils.
-  loadPosts = async () => {
-    //chamando os state para dentro da função.
-    const { page, postsPerPage } = this.state;
-    //esperando o post e photos do loadPost.
-    const postsAndPhotos = await loadPosts();
-    //setando o posts.
-    this.setState({
-      posts: postsAndPhotos.slice(page, postsPerPage), //o valor de fim não é incluso.
-      allPosts: postsAndPhotos,
-    });
-  };
+//criando function para armazenar o fetch.
+//A lógica será armazenada em outra função, na pasta utils.
+//loadPosts = async () => {
+//chamando os state para dentro da função.
+//const { page, postsPerPage } = this.state;
+//esperando o post e photos do loadPost.
+//const postsAndPhotos = await loadPosts();
+//setando o posts.
+//this.setState({
+//posts: postsAndPhotos.slice(page, postsPerPage), //o valor de fim não é incluso.
+//allPosts: postsAndPhotos,
+//});
+//};
 
-  //Criando função para chamar novos posts
-  //Não vai ser async, pois não vai buscar nada de uma API.
-  loadMorePosts = () => {
-    //chamando os states
-    const { page, postsPerPage, allPosts, posts } = this.state;
-    //determinando o nextPage
-    const nextPage = page + postsPerPage;
-    //determinando o próximo posts e fatiando, determinando inicio, fim
-    const nextPosts = allPosts.slice(nextPage, nextPage + postsPerPage);
-    //enviando os nextPosts para dentro dos posts.
-    //o spread(...) determina que todos os nextPosts estão espalhados no posts.
-    //sem o spread retornaria um novo array a cada click.
-    posts.push(...nextPosts);
+//Criando função para chamar novos posts
+//Não vai ser async, pois não vai buscar nada de uma API.
+//loadMorePosts = () => {
+//chamando os states
+//const { page, postsPerPage, allPosts, posts } = this.state;
+//determinando o nextPage
+//const nextPage = page + postsPerPage;
+//determinando o próximo posts e fatiando, determinando inicio, fim
+//const nextPosts = allPosts.slice(nextPage, nextPage + postsPerPage);
+//enviando os nextPosts para dentro dos posts.
+//o spread(...) determina que todos os nextPosts estão espalhados no posts.
+//sem o spread retornaria um novo array a cada click.
+//posts.push(...nextPosts);
 
-    this.setState({ posts, page: nextPage });
+//this.setState({ posts, page: nextPage });
 
-    //console.log(page, postsPerPage, nextPage, nextPage + postsPerPage);
-  };
+//console.log(page, postsPerPage, nextPage, nextPage + postsPerPage);
+//};
 
-  //Outro Lifecycle methods.
-  //Sempre que o componentDidMount for ativado, ocorre mudança no state.
-  //Com esta mudança ocorre novamente o render()
-  //Esta mudança é uma atualização que ativa o componentDidUpdate.
-  //Mas a cada update(atualização) o reder() é executado novamente, repetindo o componentDidUpdate.
-  //Criando assim um loop infinito.
-  //Vemos esta mudança no counter, sendo somado + 1 a cada render().
-  /*componentDidUpdate() {
+//Outro Lifecycle methods.
+//Sempre que o componentDidMount for ativado, ocorre mudança no state.
+//Com esta mudança ocorre novamente o render()
+//Esta mudança é uma atualização que ativa o componentDidUpdate.
+//Mas a cada update(atualização) o reder() é executado novamente, repetindo o componentDidUpdate.
+//Criando assim um loop infinito.
+//Vemos esta mudança no counter, sendo somado + 1 a cada render().
+/*componentDidUpdate() {
     //this.handleTimeout();
   }
 
@@ -180,67 +259,68 @@ export class Home extends React.Component {
     this.setState({ counter: counter + 1 });
   };*/
 
-  //método criado para aplicar ações ao digitar no campo.
-  handleChange = (e) => {
-    const { value } = e.target;
-    this.setState({ searchValue: value });
-  };
+//método criado para aplicar ações ao digitar no campo.
+//handleChange = (e) => {
+//const { value } = e.target;
+//this.setState({ searchValue: value });
+//};
 
-  //tem que ter o método render retornado jsx.
-  render() {
-    //const name = this.state.name;
-    const { posts, page, postsPerPage, allPosts, searchValue } = this.state; //o mesmo de acima, mas com destructuring
+//tem que ter o método render retornado jsx.
+//render() {
+//const name = this.state.name;
+//const { posts, page, postsPerPage, allPosts, searchValue } = this.state; //o mesmo de acima, mas com destructuring
 
-    //determina que se page for maior que a quant de posts, não tem mais posts.
-    const noMorePosts = page + postsPerPage >= allPosts.length;
+//determina que se page for maior que a quant de posts, não tem mais posts.
+//const noMorePosts = page + postsPerPage >= allPosts.length;
 
-    //Aplicando filtragem para pesquisa de posts e operador ternário.
-    //? é como o if ou = e : é como else ou !=.
-    const filteredPosts = !!searchValue
-      ? allPosts.filter((post) => {
-          //converte o valo para diminutivo e inclui o searchValue no diminutivo.
-          return post.title.toLowerCase().includes(searchValue.toLowerCase());
-        })
-      : posts;
+//Aplicando filtragem para pesquisa de posts e operador ternário.
+//? é como o if ou = e : é como else ou !=.
+//const filteredPosts = !!searchValue
+//? allPosts.filter((post) => {
+//converte o valo para diminutivo e inclui o searchValue no diminutivo.
+//return post.title.toLowerCase().includes(searchValue.toLowerCase());
+//})
+//: posts;
 
-    //retorno jsx.
-    //para colocar elementos javascript em jsx(html) ficam entre {}.
-    return (
-      <section className="container">
-        <div className="search-container">
-          {/*saber se o search esta vazio ou cheio. 
-          As duas !! representa if.
-          O título aparece caso o campo seja preenchido.*/}
-          {!!searchValue && <h1>Search value: {searchValue}</h1>}
-          <TextInput
-            searchValue={searchValue}
-            handleChange={this.handleChange}
-          />
-        </div>
+//retorno jsx.
+//para colocar elementos javascript em jsx(html) ficam entre {}.
+//return (
+//<section className="container">
+//<div className="search-container">
+//{/*saber se o search esta vazio ou cheio.
+//As duas !! representa if.
+//O título aparece caso o campo seja preenchido.*/}
+//{!!searchValue && <h1>Search value: {searchValue}</h1>}
+//<TextInput
+//searchValue={searchValue}
+//handleChange={this.handleChange}
+// />
+//</div>
 
-        {/*Caso tenha posts*/}
-        {filteredPosts.length > 0 && (
-          <>
-            {/*Passa o objeto post completo como uma única prop.*/}
-            <Posts posts={filteredPosts} />
-          </>
-        )}
-        {/*Caso não tenha posts*/}
-        {filteredPosts.length === 0 && <p>Não existem posts!</p>}
-        <div className="button-container">
-          {/*Se não tiver busca o button aparece, com busca o button desaparece*/}
-          {!searchValue && (
-            <Button
-              text="Load More Posts"
-              onClick={this.loadMorePosts}
-              disabled={noMorePosts}
-            />
-          )}
-        </div>
-      </section>
-    );
-  }
-}
+//{/*Caso tenha posts*/}
+//{filteredPosts.length > 0 && (
+//<>
+//{/*Passa o objeto post completo como uma única prop.*/}
+//<Posts posts={filteredPosts} />
+//</>
+//)}
+//{/*Caso não tenha posts*/}
+//{filteredPosts.length === 0 && <p>Não existem posts!</p>}
+//<div className="button-container">
+//{/*Se não tiver busca o button aparece, com busca o button desaparece*/}
+//{!searchValue && (
+//<Button
+//text="Load More Posts"
+//onClick={this.loadMorePosts}
+//disabled={noMorePosts}
+// />
+//)}
+//</div>
+//</section>
+//);
+//}
+//}
+//FIM ESTRUTURA ANTERIOR
 
 //export default Home;
 /*    
